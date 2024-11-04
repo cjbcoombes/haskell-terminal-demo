@@ -1,9 +1,13 @@
-module Result (Result (Accept, Reject)) where
+module Result (Result (Accept, Reject), mapReject) where
 
 data Result e a
     = Accept a
     | Reject e
     deriving Show
+
+mapReject :: (e -> ee) -> Result e a -> Result ee a
+mapReject f (Reject e) = Reject $ f e
+mapReject _ (Accept a) = Accept a
 
 instance Functor (Result e) where
     fmap f (Reject e) = Reject e

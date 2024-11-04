@@ -1,4 +1,4 @@
-module MathExpr (Expr) where
+module MathExpr (Expr (..)) where
 
 data Expr 
     = EInt Integer
@@ -8,3 +8,4 @@ data Expr
     | EMul Expr Expr
     | EDiv Expr Expr
     | EExp Expr Expr
+    deriving (Eq, Show)
