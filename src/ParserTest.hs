@@ -3,18 +3,21 @@ module ParserTest (testParser) where
 import MathExpr
 import Parser
 import Result
-import Control.Applicative (Alternative (..))
+import Control.Applicative ((<|>))
 import Data.Char (isAlpha)
+import Data.Map (Map, empty, insert, foldrWithKey, mapWithKey)
+import Data.Maybe (fromMaybe)
+import Data.List (intercalate)
 
 testParser :: IO ()
 testParser = do
     let str1 = "512321"
         str2 = "2 ^ 2 ^ 2"
-        str3 = "9 + 8 - 2"
+        str3 = "9 + 8 - 2 where x = 2"
         str4 = "2 * 3 + 4"
         str5 = "2 + 3 * 4"
-        str6 = "(2 + 3 - x) * 4"
-        str7 = "x"
+        str6 = "(2 + 3 - x) * 4 where x = 4"
+        str7 = "x * y + z where x = 1, y = 2 * x, z = 3"
         str8 = "2 + x"
         str9 = "(5 - x) * 2"
 
@@ -22,21 +25,36 @@ testParser = do
         token p = space *> p <* space
 
         num = token $ EInt . read <$> errLabel "invalid number" <!> takeWhile1P (`elem` "0123456789")
-        var = token $ EVar <$> errLabel "invalid varname" <!> takeWhile1P isAlpha
+        rawvar = errLabel "invalid varname" <!> takeWhile1P isAlpha
+        var = token $ EVar <$> rawvar
 
         add = token $ (EAdd <$ exactP '+') <|> (ESub <$ exactP '-')
         mul = token $ (EMul <$ exactP '*') <|> (EDiv <$ exactP '/')
         exp = token (EExp <$ exactP '^')
+        eq = token (exactP '=')
+        com = token (exactP ',')
+        where' = token $ stringP "where"
 
-        atom = token $ num <|> var <|> (exactP '(' *> expr <* exactP ')')
+        assgn = (,) <$> rawvar <* eq <*> arith
+        mkmap = foldr (uncurry insert) empty
+        clause = mkmap <$> (where' *> chainr1P ((:[]) <$> assgn) ((++) <$ com))
 
-        factor = token $ chainr1P atom exp
+        atom = num <|> var <|> (exactP '(' *> arith <* exactP ')')
 
-        term = token $ chainl1P factor mul
+        factor = chainr1P atom exp
 
-        expr = token $ chainl1P term add
+        term = chainl1P factor mul
 
-        test = (\res -> maybe "_" show (evalSimple res) ++ " = " ++ show res) <$> expr
+        arith = chainl1P term add
+
+        expr = (,) <$> arith <*> maybeP clause
+
+        present (res, m) = maybe left (left ++) right
+            where ans = eval res (fromMaybe empty m)
+                  left = maybe "_" show ans ++ " = " ++ show res
+                  right = (" where " ++) . intercalate ", " . foldrWithKey (\k v a -> (k ++ " = " ++ show v):a) [] <$> m
+
+        test = present <$> expr
 
     -- let str1 = "123"
     --     str2 = ""

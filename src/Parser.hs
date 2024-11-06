@@ -67,6 +67,12 @@ predP p = Parser $ \case
 exactP :: Eq i => i -> Parser i e i
 exactP = predP . (==)
 
+stringP :: Eq i => [i] -> Parser i e [i]
+stringP = traverse exactP -- How??
+-- stringP [] = return []
+-- stringP (x:xs) = (:) <$> exactP x <*> stringP xs
+-- stringP = foldr ((<*>) . (((:) <$>) . exactP)) (return [])
+
 splitWhile :: (i -> Bool) -> [i] -> ([i], [i])
 splitWhile p [] = ([], [])
 splitWhile p (x:xs) = if p x then (x:as, bs) else ([], x:xs)
@@ -104,7 +110,7 @@ some1P p = (:) <$> p <*> someP p
 
 chainl1P :: Parser i e a -> Parser i e (a -> a -> a) -> Parser i e a
 chainl1P p op = p >>= rest
-    where 
+    where
         -- rest x = (do
         --     f <- op
         --     y <- p

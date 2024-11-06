@@ -1,4 +1,7 @@
-module MathExpr (Expr (..), evalSimple) where
+module MathExpr (Expr (..), evalSimple, eval) where
+
+import Prelude hiding (lookup)
+import Data.Map
 
 data Expr
     = EInt Integer
@@ -20,6 +23,16 @@ evalSimple (EMul a b) = (*) <$> evalSimple a <*> evalSimple b
 evalSimple (ESub a b) = (-) <$> evalSimple a <*> evalSimple b
 evalSimple (EDiv a b) = quot <$> evalSimple a <*> evalSimple b
 evalSimple (EExp a b) = (^) <$> evalSimple a <*> evalSimple b
+
+eval :: Expr -> Map String Expr -> Maybe Integer
+eval (EInt i) _ = Just i
+eval (EVar v) m = lookup v m >>= (`eval` m)
+eval (ENeg e) m = negate <$> eval e m
+eval (EAdd a b) m = (+) <$> eval a m <*> eval b m
+eval (EMul a b) m = (*) <$> eval a m <*> eval b m
+eval (ESub a b) m = (-) <$> eval a m <*> eval b m
+eval (EDiv a b) m = quot <$> eval a m <*> eval b m
+eval (EExp a b) m = (^) <$> eval a m <*> eval b m
 
 -- eval w/ map
 
