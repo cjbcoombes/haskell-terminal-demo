@@ -10,6 +10,7 @@ data ParseError i e
     = Unexpected i
     | Eof
     | Custom e
+    | Branch [ParseError i e]
     | Joined [ParseError i e]
     deriving Show
 
@@ -47,7 +48,7 @@ orP a b = Parser $ \input ->
         Accept x -> Accept x
         Reject ea -> case runParser b input of
             Accept x -> Accept x
-            Reject eb -> Reject (Joined [ea, eb])
+            Reject eb -> Reject (Branch [ea, eb])
 
 instance Alternative (Parser i e) where
     empty = Parser $ const (Reject Eof)
@@ -103,10 +104,20 @@ some1P p = (:) <$> p <*> someP p
 
 chainl1P :: Parser i e a -> Parser i e (a -> a -> a) -> Parser i e a
 chainl1P p op = p >>= rest
-    where rest x = (do
-            f <- op
-            y <- p
-            rest (f x y)) <|> return x
+    where 
+        -- rest x = (do
+        --     f <- op
+        --     y <- p
+        --     rest (f x y)) <|> return x
+        rest x = ((op <*> pure x <*> p) >>= rest) <|> return x
+
+chainr1P :: Parser i e a -> Parser i e (a -> a -> a) -> Parser i e a
+-- chainr1P p op = (do
+--     x <- p
+--     f <- op
+--     y <- chainr1P p op
+--     return (f x y)) <|> p
+chainr1P p op = (flip ($) <$> p <*> op <*> chainr1P p op) <|> p
 
 -- seqP :: Parser i e a -> Parser i e a -> Parser i e [a]
 -- seqP a b = (\x y -> [x,y]) <$> a <*> b
