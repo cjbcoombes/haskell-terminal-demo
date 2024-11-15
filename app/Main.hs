@@ -5,5 +5,5 @@ import qualified ParserTest (testParser)
 
 main :: IO ()
 main = do
-  -- MyLib.someFunc
-  ParserTest.testParser
+    MyLib.someFunc
+    -- ParserTest.testParser

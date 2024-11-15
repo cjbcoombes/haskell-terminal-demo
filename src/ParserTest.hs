@@ -7,7 +7,6 @@ import Control.Applicative ((<|>))
 import Data.Char (isAlpha)
 import Data.Map (Map, empty, insert, foldrWithKey, mapWithKey)
 import Data.Maybe (fromMaybe)
-import Data.List (intercalate)
 
 testParser :: IO ()
 testParser = do
@@ -39,7 +38,7 @@ testParser = do
         mkmap = foldr (uncurry insert) empty
         clause = mkmap <$> (where' *> chainr1P ((:[]) <$> assgn) ((++) <$ com))
 
-        atom = num <|> var <|> (exactP '(' *> arith <* exactP ')')
+        atom = num <|> var <|> (exactP '(' *> expr <* exactP ')')
 
         factor = chainr1P atom exp
 
@@ -47,12 +46,9 @@ testParser = do
 
         arith = chainl1P term add
 
-        expr = (,) <$> arith <*> maybeP clause
+        expr = EWhere <$> arith <*> (fromMaybe empty <$> maybeP clause)
 
-        present (res, m) = maybe left (left ++) right
-            where ans = eval res (fromMaybe empty m)
-                  left = maybe "_" show ans ++ " = " ++ show res
-                  right = (" where " ++) . intercalate ", " . foldrWithKey (\k v a -> (k ++ " = " ++ show v):a) [] <$> m
+        present res = maybe "_" show (eval res) ++ " = " ++ show res
 
         test = present <$> expr
 

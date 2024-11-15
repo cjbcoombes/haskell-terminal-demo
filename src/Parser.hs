@@ -3,7 +3,7 @@
 {-# LANGUAGE TupleSections #-}
 module Parser (module Parser) where
 
-import Result
+import Result ( mapReject, Result(..) )
 import Control.Applicative (Alternative (..))
 
 data ParseError i e
