@@ -5,8 +5,7 @@ import Parser
 import Result
 import Control.Applicative ((<|>))
 import Data.Char (isAlpha)
-import Data.Map
-import Data.List (intercalate)
+import Data.Map ( empty, foldrWithKey, lookup, null, singleton, union, Map )
 import Data.Maybe (fromMaybe)
 
 data Expr
@@ -58,7 +57,7 @@ instance Show Expr where
             write (EDiv a b) = '(' : write a ++ " / " ++ write b ++ ")"
             write (EExp a b) = '(' : write a ++ " ^ " ++ write b ++ ")"
             write (EWhere a m) | null m = write a
-                               | otherwise = write a ++ " where " ++ intercalate ", " (foldrWithKey (\k v a -> (k ++ " = " ++ show v):a) [] m)
+                               | otherwise = write a ++ " where " ++ drop 2 (foldrWithKey (\k v a -> ", " ++ k ++ " = " ++ write v ++ a) "" m)
 
 exprParser :: Parser Char String Expr
 exprParser = expr
@@ -79,7 +78,8 @@ exprParser = expr
           assgn = (,) <$> rawvar <* eq <*> arith
           clause = where' *> chainr1P (uncurry singleton <$> assgn) (union <$ com)
 
-          atom = num <|> var <|> (exactP '(' *> expr <* exactP ')')
+          atom' = num <|> var <|> (exactP '(' *> expr <* exactP ')')
+          atom = token $ maybe id (const ENeg) <$> maybeP (exactP '-') <*> atom'
 
           factor = chainr1P atom exp
 
