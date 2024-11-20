@@ -26,7 +26,7 @@ splitbox w h = "┌" ++ divide "┬" '─' ++ "┐\n" ++ rows ++ "└" ++ divide
           rows = concat (replicate h row)
 
 width :: Int
-width = 70
+width = 100
 sidewidth :: Int
 sidewidth = 21
 height :: Int
